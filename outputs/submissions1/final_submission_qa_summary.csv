@@ -1,0 +1,4 @@
+name,shape,unique_ids,missing,negative,total,max,validation_sunday_total,evaluation_sunday_total,public_score,output_path
+recent21_28blend_sunday0,"(31944, 29)",31944,0,0,61808.000000000015,88.60714285714286,0.0,0.0,0.49259,/Users/thutrang/Desktop/Code/Contest/hbaac/outputs/submissions1/submission_recent21_28blend_sunday0.csv
+recent21_sunday0,"(31944, 29)",31944,0,0,61099.42857142858,93.71428571428571,0.0,0.0,0.49299,/Users/thutrang/Desktop/Code/Contest/hbaac/outputs/submissions1/submission_recent21_sunday0.csv
+recent28_sunday0,"(31944, 29)",31944,0,0,62516.571428571435,83.5,0.0,0.0,0.49339,/Users/thutrang/Desktop/Code/Contest/hbaac/outputs/submissions1/submission_recent28_sunday0.csv
