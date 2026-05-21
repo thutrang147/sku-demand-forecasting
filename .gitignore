@@ -1,15 +1,63 @@
+# Local environment
 .venv/
+.env
 __pycache__/
-.ipynb_checkpoints/
+*.pyc
 .DS_Store
 
-# Raw Kaggle data is typically not committed.
+# Notebook/system noise
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# Competition raw data / processed cache
 data/raw/train.csv
 data/raw/sample_submission.csv
-
-# Processed cache and reproducible outputs.
 data/processed/*.parquet
+data/processed/*.csv
+
+# Research notebooks
+notebooks/*.ipynb
+notebooks/research/
+notebooks/**/research/
+notebooks/.ipynb_checkpoints/
+
+# Temporary experiment outputs
 outputs/submissions_candidates/
-outputs/diagnostics/*.csv
+outputs/error_audit/
+outputs/audit/
+outputs/reproduce_audit/
 outputs/archive/
+outputs/temp/
+outputs/cv_results/
+outputs/models/
+outputs/diagnostics/*.csv
+outputs/final_submissions/*_20??????_??????.csv
 *.log
+
+# Old experiment / candidate scripts kept locally but not committed
+src/experiment_error_decomposition.py
+src/final_submission_rank_selector.py
+src/generate_longtail_family_candidates.py
+src/generate_longtail_final_allin_candidate.py
+src/generate_longtail_soft_recency_candidate.py
+src/generate_longtail_v14_allin_candidates.py
+src/generate_longtail_v16_lottery_candidate.py
+src/generate_longtail_v16_lottery_candidates.py
+src/generate_longtail_v14_allin_candidate.py
+src/make_anchor_private_hedge.py
+src/generate_longtail_v15_lite_allin.py
+src/generate_longtail_v16_lottery.py
+
+# Keep final reproducible scripts
+!src/final_reproduce.py
+!src/generate_final_submissions.py
+
+# Keep final submissions and final diagnostics
+!outputs/
+!outputs/final_submissions/
+!outputs/final_submissions/*.csv
+!outputs/diagnostics/
+!outputs/diagnostics/final_submission_summary.csv
+
+# Keep timestamped rerun artifacts local-only
+outputs/final_submissions/*_20??????_??????.csv

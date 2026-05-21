@@ -1,4 +1,0 @@
-name,rows,cols,unique_ids,missing,negative,total,validation_total,evaluation_total,max,validation_sunday_total,evaluation_sunday_total
-generated_recent14_18_21_w20_45_35_sunday0,31944,29,31944,0,0,59814.79999999999,29907.4,29907.4,89.83571428571427,0.0,0.0
-generated_recent18_21_28_56_private_safe,31944,29,31944,0,0,61331.98571428571,30665.992857142854,30665.992857142854,89.52976190476191,0.0,0.0
-submission_PUBLIC_ANCHOR_recent14_18_21_w20_45_35_sunday0__eval_recent18_21_28_56_private_safe.csv,31944,29,31944,0,0,60573.392857142855,29907.4,30665.992857142854,89.83571428571427,0.0,0.0

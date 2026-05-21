@@ -79,7 +79,7 @@ The final script checks:
 
 ## 8. Repository Notes
 
-- `src/generate_final_submissions.py` is the authoritative reproduction entrypoint.
+- `src/generate_final_submissions.py` is the only required entrypoint for final reproduction.
 - `src/final_reproduce.py` contains reusable data preparation and forecasting helpers.
-- Files under `notebooks/` are exploratory research artifacts and are not required for final reproduction.
-- Legacy research scripts and experiments can be kept in `archive/` if needed for reference.
+- Raw competition data is intentionally not committed; place `data/raw/train.csv` and `data/raw/sample_submission.csv` locally before running.
+- Other local experiment scripts and research notebooks are not required and are intentionally excluded from version control.
