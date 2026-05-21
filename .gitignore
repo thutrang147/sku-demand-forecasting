@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
+
+# Raw Kaggle data is typically not committed.
+data/raw/train.csv
+data/raw/sample_submission.csv
+
+# Processed cache and reproducible outputs.
+data/processed/*.parquet
+outputs/submissions_candidates/
+outputs/diagnostics/*.csv
+outputs/archive/
+*.log
