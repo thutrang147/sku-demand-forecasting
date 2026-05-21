@@ -12,7 +12,6 @@ It does not auto-submit and it does not depend on notebook state.
 from __future__ import annotations
 
 from pathlib import Path
-import datetime
 import sys
 
 import numpy as np
@@ -135,13 +134,16 @@ def assign_recency_bucket(days_since: float) -> str:
     return ">180"
 
 
-def safe_write_csv(path: Path, df: pd.DataFrame) -> Path:
-    out_path = path
-    if out_path.exists():
-        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        out_path = out_path.with_name(f"{out_path.stem}_{ts}{out_path.suffix}")
-    df.to_csv(out_path, index=False)
-    return out_path
+def write_csv(path: Path, df: pd.DataFrame, overwrite: bool = True) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists() and not overwrite:
+        raise FileExistsError(path)
+    df.to_csv(path, index=False)
+    return path
+
+
+def to_rel(path: Path) -> str:
+    return str(path.resolve().relative_to(PROJECT_ROOT.resolve()))
 
 
 def apply_candidate_rules(candidate_name: str, anchor_pred: pd.DataFrame, meta: pd.DataFrame) -> pd.DataFrame:
@@ -237,7 +239,7 @@ def summarize_rank_delta(candidate_name: str, candidate_pred: pd.DataFrame, anch
     summary.insert(0, "candidate_name", candidate_name)
 
     out_path = DIAG_DIR / f"diagnostics_{candidate_name}_delta_by_rank_bucket.csv"
-    out_path = safe_write_csv(out_path, summary)
+    out_path = write_csv(out_path, summary, overwrite=True)
 
     def get_val(bucket: str, metric: str) -> float:
         row = summary.loc[summary["rank_bucket"] == bucket]
@@ -283,7 +285,7 @@ def summarize_recency_delta(candidate_name: str, candidate_pred: pd.DataFrame, a
     summary.insert(0, "candidate_name", candidate_name)
 
     out_path = DIAG_DIR / f"diagnostics_{candidate_name}_delta_by_recency_bucket.csv"
-    out_path = safe_write_csv(out_path, summary)
+    out_path = write_csv(out_path, summary, overwrite=True)
 
     warnings_list: list[str] = []
     total_delta_pct = float(df["delta"].sum() / (df["anchor_total"].sum() + 1e-12))
@@ -356,7 +358,7 @@ def write_top_changed_sku(candidate_name: str, candidate_pred: pd.DataFrame, anc
     out.insert(0, "candidate_name", candidate_name)
 
     out_path = DIAG_DIR / f"diagnostics_{candidate_name}_top_changed_sku.csv"
-    return safe_write_csv(out_path, out)
+    return write_csv(out_path, out, overwrite=True)
 
 
 def write_submission_and_diagnostics(candidate_name: str, public_score_reference: float, candidate_pred: pd.DataFrame, anchor_pred: pd.DataFrame, meta: pd.DataFrame, sample: pd.DataFrame) -> dict:
@@ -365,10 +367,10 @@ def write_submission_and_diagnostics(candidate_name: str, public_score_reference
     submission_filename = V16_FILE if candidate_name == V16_NAME else V14_FILE
     submission_path = FINAL_SUB_DIR / submission_filename
     submission_df = make_kaggle_submission(pred_56=candidate_pred, sample=sample, output_path=None)
-    submission_path = safe_write_csv(submission_path, submission_df)
+    submission_path = write_csv(submission_path, submission_df, overwrite=True)
 
     print(f"\nCandidate: {candidate_name}")
-    print(" - submission_path:", submission_path)
+    print(" - submission_path:", to_rel(submission_path))
     print(" - shape:", submission_df.shape)
     print(" - unique ids:", submission_df["id"].nunique())
     print(" - missing:", int(submission_df[f_cols].isna().sum().sum()))
@@ -385,12 +387,18 @@ def write_submission_and_diagnostics(candidate_name: str, public_score_reference
     print(" - validation Sunday total:", validation_sunday_total)
     print(" - evaluation Sunday total:", evaluation_sunday_total)
 
-    assert submission_df.shape == sample.shape
-    assert submission_df["id"].tolist() == sample["id"].tolist()
-    assert submission_df[f_cols].isna().sum().sum() == 0
-    assert np.isfinite(submission_df[f_cols].to_numpy()).all()
-    assert (submission_df[f_cols] < 0).sum().sum() == 0
-    assert abs(validation_sunday_total) < 1e-8 and abs(evaluation_sunday_total) < 1e-8
+    if submission_df.shape != sample.shape:
+        raise ValueError(f"{candidate_name}: submission shape mismatch: {submission_df.shape} != {sample.shape}")
+    if submission_df["id"].tolist() != sample["id"].tolist():
+        raise ValueError(f"{candidate_name}: id order mismatch with sample")
+    if int(submission_df[f_cols].isna().sum().sum()) != 0:
+        raise ValueError(f"{candidate_name}: submission contains NaN")
+    if not np.isfinite(submission_df[f_cols].to_numpy()).all():
+        raise ValueError(f"{candidate_name}: submission contains inf")
+    if int((submission_df[f_cols] < 0).sum().sum()) != 0:
+        raise ValueError(f"{candidate_name}: submission contains negative values")
+    if abs(validation_sunday_total) >= 1e-8 or abs(evaluation_sunday_total) >= 1e-8:
+        raise ValueError(f"{candidate_name}: Sunday totals are not zero")
 
     delta = candidate_pred - anchor_pred
     abs_delta_by_sku = delta.abs().sum(axis=1)
@@ -421,6 +429,11 @@ def write_submission_and_diagnostics(candidate_name: str, public_score_reference
     rank_101_500_delta = get_metric(rank_summary, "rank_bucket", "rank_101_500", "delta")
     rank_001_100_max_abs = get_metric(rank_summary, "rank_bucket", "rank_001_100", "max_abs_delta")
     rank_101_500_max_abs = get_metric(rank_summary, "rank_bucket", "rank_101_500", "max_abs_delta")
+    rank_le500_max_abs = max(rank_001_100_max_abs, rank_101_500_max_abs)
+
+    print(" - rank <=500 delta:", rank_001_100_delta + rank_101_500_delta)
+    print(" - rank <=500 max_abs_delta:", rank_le500_max_abs)
+    print(" - recent_rank_gt1000_zeroed_count:", n_candidate_zero)
 
     if abs(rank_001_100_delta) > 1e-8 or abs(rank_101_500_delta) > 1e-8:
         raise ValueError(f"Hard gate failed for {candidate_name}: rank <= 500 delta is not zero")
@@ -429,7 +442,7 @@ def write_submission_and_diagnostics(candidate_name: str, public_score_reference
 
     summary_row = {
         "candidate_name": candidate_name,
-        "submission_path": str(submission_path),
+        "submission_path": to_rel(submission_path),
         "public_score_reference": public_score_reference,
         "total_forecast": candidate_total,
         "total_delta": total_delta,
@@ -445,9 +458,9 @@ def write_submission_and_diagnostics(candidate_name: str, public_score_reference
         "recency_15_56_delta_pct": get_metric(recency_summary, "recency_bucket", "15-56", "delta_pct"),
         "recent_rank_gt1000_zeroed_count": int(n_candidate_zero),
         "pass_hard_gates": True,
-        "rank_diag_path": str(rank_path),
-        "recency_diag_path": str(recency_path),
-        "top_changed_path": str(top_changed_path),
+        "rank_diag_path": to_rel(rank_path),
+        "recency_diag_path": to_rel(recency_path),
+        "top_changed_path": to_rel(top_changed_path),
     }
 
     if summary_row["recent_rank_gt1000_zeroed_count"] != 0:
@@ -527,7 +540,7 @@ def main() -> None:
     ]]
 
     summary_path = DIAG_DIR / "final_submission_summary.csv"
-    summary_path = safe_write_csv(summary_path, summary_df)
+    summary_path = write_csv(summary_path, summary_df, overwrite=True)
 
     print("\nREADY TO REVIEW, NOT AUTO-SUBMITTED")
     print("Submission path:")
@@ -539,11 +552,12 @@ def main() -> None:
             print(" -", path)
     print("Summary row:")
     print(summary_df.to_string(index=False))
+    print("Summary path:", to_rel(summary_path))
     print("SUCCESS: final reproducible submissions generated.")
     print("FINAL REPRODUCTION COMPLETE")
     print("Generated:")
-    print(f"1. {FINAL_SUB_DIR / V16_FILE}")
-    print(f"2. {FINAL_SUB_DIR / V14_FILE}")
+    print(f"1. {to_rel(FINAL_SUB_DIR / V16_FILE)}")
+    print(f"2. {to_rel(FINAL_SUB_DIR / V14_FILE)}")
 
 
 if __name__ == "__main__":

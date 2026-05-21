@@ -58,11 +58,12 @@ The script also writes per-candidate diagnostics in `outputs/diagnostics/`.
 
 - Clean the raw transaction table and build a daily SKU panel.
 - Compute SKU-level activity and profit rank from the training period.
-- Build the anchor forecast from recent windows `14`, `18`, and `21` days using weights `0.20`, `0.45`, and `0.35`.
+- Build anchor as `0.20 * recent14 + 0.45 * recent18 + 0.35 * recent21`.
 - Force Sunday forecasts to zero in the forecast horizon.
 - Suppress long-tail and intermittent SKUs more aggressively as rank worsens and recency/activity weaken.
 - Keep rank `<= 500` exactly equal to the anchor forecast.
 - Clip negative values to zero after candidate rules.
+- `v16_lottery` is the public-best selected submission and `v14_controlled_allin` is the less aggressive hedge.
 
 ## 7. QA and Reproducibility Checks
 
@@ -80,6 +81,6 @@ The final script checks:
 ## 8. Repository Notes
 
 - `src/generate_final_submissions.py` is the only required entrypoint for final reproduction.
-- `src/final_reproduce.py` contains reusable data preparation and forecasting helpers.
+- `src/final_reproduce.py` contains reusable data preparation and forecasting helpers and should not be run directly for final generation.
 - Raw competition data is intentionally not committed; place `data/raw/train.csv` and `data/raw/sample_submission.csv` locally before running.
 - Other local experiment scripts and research notebooks are not required and are intentionally excluded from version control.

@@ -1,22 +1,10 @@
-"""
-Final reproducibility script for SKU demand forecasting.
+"""Reusable data preparation and forecasting helpers.
 
-Run from the project root:
-    python src/final_reproduce.py
+This module is imported by src/generate_final_submissions.py.
+The final reproduction entrypoint is:
+    python src/generate_final_submissions.py
 
-Expected input files:
-    data/raw/train.csv
-    data/raw/sample_submission.csv
-
-Generated output files:
-    outputs/submissions1/submission_recent21_28blend_sunday0.csv
-    outputs/submissions1/submission_recent21_sunday0.csv
-    outputs/submissions1/submission_recent28_sunday0.csv
-
-Note:
-    The output folder is intentionally set to outputs/submissions1 for checking.
-    After verifying outputs, change OUTPUT_SUBDIR_NAME from "submissions1" to "submissions"
-    if you want the script to write into the final submissions folder.
+Do not run this file as the final submission generator.
 """
 
 from __future__ import annotations
@@ -35,10 +23,6 @@ ROOT = Path(__file__).resolve().parents[1]
 
 DATA_RAW = ROOT / "data" / "raw"
 OUTPUTS = ROOT / "outputs"
-
-# Temporary output folder for checking. Change to "submissions" after verification.
-OUTPUT_SUBDIR_NAME = "submissions1"
-SUB_DIR = OUTPUTS / OUTPUT_SUBDIR_NAME
 
 TRAIN_PATH = DATA_RAW / "train.csv"
 SAMPLE_PATH = DATA_RAW / "sample_submission.csv"
@@ -601,83 +585,8 @@ def compare_with_existing_submission(generated_sub: pd.DataFrame, name: str) -> 
     print(f"Reference comparison for {name}: max_abs_diff = {max_abs_diff}")
 
 
-# ============================================================
-# Main
-# ============================================================
-
-def main() -> None:
-    log_section("1. Load raw data")
-    train, sample = load_raw_data()
-
-    log_section("2. Clean train data")
-    train_clean = clean_train(train)
-
-    log_section("3. Build daily panel")
-    daily_panel = make_daily_panel(train_clean)
-
-    log_section("4. Build SKU activity")
-    sku_activity = make_sku_activity(daily_panel)
-
-    log_section("5. Generate final candidate submissions")
-    final_configs = [
-        {
-            "name": "recent21_28blend_sunday0",
-            "windows": (21, 28),
-            "weights": (0.50, 0.50),
-            "public_score": 0.49259,
-        },
-        {
-            "name": "recent21_sunday0",
-            "windows": (21,),
-            "weights": (1.0,),
-            "public_score": 0.49299,
-        },
-        {
-            "name": "recent28_sunday0",
-            "windows": (28,),
-            "weights": (1.0,),
-            "public_score": 0.49339,
-        },
-    ]
-
-    qa_records: list[dict] = []
-
-    for cfg in final_configs:
-        print("\n" + "-" * 80)
-        print(
-            f"Submission: {cfg['name']} | "
-            f"Public score: {cfg['public_score']} | "
-            f"windows={cfg['windows']} | weights={cfg['weights']}"
-        )
-
-        pred_56 = build_recent_forecast(
-            panel=daily_panel,
-            sku_activity=sku_activity,
-            windows=cfg["windows"],
-            weights=cfg["weights"],
-            name=cfg["name"],
-        )
-
-        output_path = SUB_DIR / f"submission_{cfg['name']}.csv"
-        sub = make_kaggle_submission(pred_56=pred_56, sample=sample, output_path=output_path)
-        qa_summary = qa_submission(sub=sub, sample=sample, name=cfg["name"])
-        qa_summary["public_score"] = cfg["public_score"]
-        qa_summary["output_path"] = str(output_path)
-        qa_records.append(qa_summary)
-
-        compare_with_existing_submission(sub, cfg["name"])
-
-    log_section("6. Save QA summary")
-    qa_df = pd.DataFrame(qa_records)
-    qa_path = SUB_DIR / "final_submission_qa_summary.csv"
-    qa_df.to_csv(qa_path, index=False)
-    print(qa_df)
-    print(f"Saved QA summary: {qa_path}")
-
-    log_section("Done")
-    print(f"Generated final submissions in: {SUB_DIR}")
-    print("If outputs look correct, you can later change OUTPUT_SUBDIR_NAME to 'submissions'.")
-
-
 if __name__ == "__main__":
-    main()
+    raise SystemExit(
+        "Use python src/generate_final_submissions.py for final reproduction. "
+        "src/final_reproduce.py is a helper module."
+    )
